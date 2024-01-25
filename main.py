@@ -267,13 +267,24 @@ def update_departures():
     global stations
     timestamp = int(time.time()*1000) #get the current timestamp in ms
     print("updating departures")
-    i75.set_led(0, 0, 50) #change the onboard led to blue, for debugging
-    for station in stations:
+    i75.set_led(100, 0, 0) #change the onboard led to red, for debugging
+    for station in (
+            [stations[active_station]] + #check the active station first, then the others
+            [stations[i] for i in range(len(stations)) if i != active_station ]):
         departures = [] #new structure for the departures
         for sid in station["id"]:
-            resp = requests.get(url=DEPARTURES_URL.format(sid))
-            data = resp.json()
-            resp.close()
+            try:
+                resp = requests.get(url=DEPARTURES_URL.format(sid))
+                data = resp.json()
+                resp.close()
+            except Exception:
+                print("failed to update {}".format(station["name"]))
+                if station == stations[active_station]: #if the exception is on the current station
+                    machine.reset() #reset the board
+                else:
+                    station["departures"] = initial_departures #otherwise, just reset the station
+                    break #and move on to next station
+            i75.set_led(0, 0, 80) #change the onboard led to blue, for debugging
             count = 0 # we only need MAX_LINES departures
             for departure in data:
                 #if filter is defined, skip departures that the label doesn't match the filter
@@ -291,15 +302,19 @@ def update_departures():
                     count+=1
                     if count > MAX_LINES-1: #only getting necessary entries
                         break
-        if len(departures) == 0: #if there are no departures available to show
-            departures.append({
+        else:
+            # only executed if the inner loop did NOT break
+            if len(departures) == 0: #if there are no departures available to show
+                departures.append({
                     "transportType": "XX", # just to show in yellow
                     "label": "++ ",
                     "destination": "No departures available",
                     "realtimeDepartureTime": 3141592653589,
                     }
                 )
-        station["departures"] = departures #update with the fetched departures
+            station["departures"] = departures #update with the fetched departures
+            print("station {} updated".format(station["name"]))
+        continue  # only executed if the inner loop DID break
     print("departures updated!")
     i75.set_led(0, 50, 0) #set led to green
 
@@ -318,9 +333,5 @@ second_thread = _thread.start_new_thread(draw_loop, ())
 
 # Use the first cpu to update departure info
 while True:
-    try:
-        update_departures()
-    except Exception as e:
-        print(e)
-        machine.reset() #reset the board in case of issues
+    update_departures()
     time.sleep(DEPARTURES_UPDATE_DELAY)
