@@ -43,7 +43,7 @@ stations.append( # Second station
 )
 ```
 
-It is possible to include more than one `id` in the station information. This will make the configured station to display departure information for multiple stations. In this case you can use an `abbreviation` name that makes sense for you.
+It is possible to include more than one `id` in the station information. This will make the configured station to display departure information for multiple stations. In this case, you can use an `abbreviation` name that makes sense for you.
 
 You can use the onboard button A of i75w to change between the available stations.
 
@@ -60,10 +60,11 @@ There are multiple variables controling the behaviour regarding delays. These ar
 
  - `DISABLE_SCROLL`: Disables the scrolling of the departure name totally
 
-
 ## Example
 
-![Current Departures in Munich Hauptbahnhof](https://imgur.com/jsHDPsd.png)
+![station](https://github.com/rafael747/i75w-mvg-farhinfo/assets/3441126/97d6902d-82e9-4ae3-86d1-73860434e6ce)
+
+https://github.com/rafael747/i75w-mvg-farhinfo/assets/3441126/878e0836-b371-4c74-9605-dce73c2667e6
 
 ## Credits
 
@@ -76,6 +77,6 @@ MIT
 
 ### Limitations
 
-Due the hardware limitations of pico w, the board will soft reset itself when facing any issues (when connecting to the wifi, when connecting to the API, etc..)
-Luckly, the current station will be preserved between the resets.
+Due to the hardware limitations of pico w, the board will soft reset itself when facing any issues (when connecting to the wifi, when connecting to the API, etc..)
+Luckily, the current station will be preserved between the resets.
 
