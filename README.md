@@ -12,8 +12,8 @@ This code was developed using a 64x32 pixels panel, but other panel sizes (compo
 ## Setup
 
  - Check [these](https://learn.pimoroni.com/article/getting-started-with-interstate-75) instructions to setup your board with Pimoroni's Micropython libraries
- - Include your WIFI information in `WIFI_CONFIG.py`
- - Move `main.py`, `network_manager.py` and `WIFI_CONFIG.py` to pico's flash memory using Thonny
+ - Include your WIFI and desired stations information in `CONFIG.py`
+ - Move `main.py`, `network_manager.py` and `CONFIG.py` to pico's flash memory using Thonny
 
 Now everytime the board is turned on it will automatically run the code
 
@@ -21,7 +21,7 @@ Now everytime the board is turned on it will automatically run the code
 
 ### Selecting Stations
 
-The code will update the departure information for the predetermined stations in the code
+The code will update the departure information for the predetermined stations in the `CONFIG.py` file
 
 You can append multiple stations to the `stations` list with the station information that you want to display (be aware of the memory limitations of rp pico w)
 

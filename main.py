@@ -8,7 +8,7 @@ import ntptime
 from interstate75 import Interstate75, DISPLAY_INTERSTATE75_64X32
 from pimoroni import Button
 
-import WIFI_CONFIG
+import CONFIG
 from network_manager import NetworkManager
 
 # Panel related configuration
@@ -42,11 +42,9 @@ TRAM = graphics.create_pen(120, 0, 1)
 SBAHN = graphics.create_pen(0, 120, 0)
 
 # Departures endpoint
-DEPARTURES_URL = 'https://www.mvg.de/api/fib/v2/departure?globalId={}'
+DEPARTURES_URL = 'https://www.mvg.de/api/bgw-pt/v3/departures?globalId={}'
 DEPARTURES_UPDATE_DELAY = 60 #how often should we update departure info
-
-# Structures that will hold all the station and departures info
-stations = []
+DEPARTURES_UPDATE_MAX_RETRIES = 2 #How many times we should retry updating departures
 
 # Using Watchdog Scratch register 0 to store ActiveStating between resets
 active_station = machine.mem32[0x40058000+0xc] # defaults to 0 on poweron
@@ -61,20 +59,9 @@ initial_departures = [
         }
     ]
 
-# Get station information from https://www.mvg.de/.rest/zdm/stations
-
-stations.append(
-        {
-            "id": ["de:09162:2"],               #station IDs, used to fetch departures
-            "name": "Marienplatz",              #station name, not used
-            "tariffZones":"m",                  #tariffZones (m, m+1, etc..), not used
-            "products":["UBAHN","BUS","SBAHN"], #transportation type, used in the station screen
-            "abbreviation":"MP",                #short name, used in the station screen
-            "filter":["S8","S1"],               #only show depart. with these labels (if present)
-            "departures": initial_departures    #structure that will hold departure data
-        })
-
-# Add more stations as needed (be aware of the memory limitations of rp pico w)
+# Structures that will hold all the station and departures info
+stations = CONFIG.stations
+stations[active_station]["departures"] = initial_departures
 
 # Timing Configuration (delays, etc..)
 GLOBAL_SLEEP = 0.2 # time increment for every step
@@ -86,6 +73,7 @@ station_wait = STATION_DEFAULT_WAIT
 # Time to wait while showing departure info (use low values when scrolling)
 DEPARTURES_DEFAULT_WAIT = 0.2
 departures_wait = DEPARTURES_DEFAULT_WAIT
+departures_update_retries = DEPARTURES_UPDATE_MAX_RETRIES # First update should succeed
 
 # Scrolling variables
 DISABLE_SCROLL = 0
@@ -100,7 +88,7 @@ def status_handler(mode, status, ip):
     graphics.set_pen(BLACK)
     graphics.clear()
     graphics.set_pen(WHITE)
-    graphics.text("{}".format(WIFI_CONFIG.SSID), 2, 2, scale=1)
+    graphics.text("{}".format(CONFIG.SSID), 2, 2, scale=1)
     status_text = "Connecting..."
     if status is not None:
         if status:
@@ -265,6 +253,8 @@ def draw_loop():
 def update_departures():
     """Function to update departure information using mvg api"""
     global stations
+    global departures_update_retries
+    
     timestamp = int(time.time()*1000) #get the current timestamp in ms
     print("updating departures")
     i75.set_led(100, 0, 0) #change the onboard led to red, for debugging
@@ -279,12 +269,19 @@ def update_departures():
                 resp.close()
             except Exception:
                 print("failed to update {}".format(station["name"]))
-                if station == stations[active_station]: #if the exception is on the current station
+                if (station == stations[active_station] and
+                        departures_update_retries >= DEPARTURES_UPDATE_MAX_RETRIES):
+                    #if the exception is on the current station and we don't want to retry more
                     machine.reset() #reset the board
+                elif station == stations[active_station]: #if it is ok to retry
+                    departures_update_retries += 1 #not reseting the current station
+                    print("will retry {}/{}".format(departures_update_retries,DEPARTURES_UPDATE_MAX_RETRIES))
+                    break #and move on to next station
                 else:
-                    station["departures"] = initial_departures #otherwise, just reset the station
+                    station["departures"] = initial_departures #just reset the station
                     break #and move on to next station
             i75.set_led(0, 0, 80) #change the onboard led to blue, for debugging
+            departures_update_retries = 0 #reseting retry counter
             count = 0 # we only need MAX_LINES departures
             for departure in data:
                 #if filter is defined, skip departures that the label doesn't match the filter
@@ -320,9 +317,9 @@ def update_departures():
 
 # Connect to WIFI
 try:
-    network_manager = NetworkManager(WIFI_CONFIG.COUNTRY, status_handler=status_handler)
+    network_manager = NetworkManager(CONFIG.COUNTRY, status_handler=status_handler)
     uasyncio.get_event_loop().run_until_complete(
-        network_manager.client(WIFI_CONFIG.SSID, WIFI_CONFIG.PSK))
+        network_manager.client(CONFIG.SSID, CONFIG.PSK))
     ntptime.settime() # Adjusting the RTC time
 except Exception as e:
     print(e)
