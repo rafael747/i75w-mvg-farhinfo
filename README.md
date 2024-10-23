@@ -69,7 +69,7 @@ https://github.com/rafael747/i75w-mvg-farhinfo/assets/3441126/878e0836-b371-4c74
 ## Credits
 
 - [MVG](https://mvg.de) for the API.
-- [FaisalBinAhmed/MVGFahrinfo](https://github.dev/FaisalBinAhmed/MVGFahrinfo) for the inspiration for this project
+- [FaisalBinAhmed/MVGFahrinfo](https://github.com/FaisalBinAhmed/MVGFahrinfo) for the inspiration for this project
 
 ## License
 
